@@ -240,22 +240,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     // 2. API call was successful.
-    // Simulate the comment locally to match API response structure.
-    console.log("Comment POST successful. Simulating local state update.");
+    // GET THE ACTUAL COMMENT FROM THE RESPONSE
+    const newComment: CommentType = await response.json();
     
-     const newComment: CommentType = {
-        id: Date.now(), // Mock ID
-        film: movieId, // Add film ID
-        user: currentUser.email, // Use email to match API
-        comment: commentText,
-        is_good: true, // Default to true since UI is removed
-        created_at: new Date().toISOString(), // Mock timestamp
-    }
+    // REMOVED: The hard-coded simulation
+    // console.log("Comment POST successful. Simulating local state update.");
+    // const newComment: CommentType = {
+    //    id: Date.now(), 
+    //    film: movieId, 
+    //    user: currentUser.email, 
+    //    comment: commentText,
+    //    is_good: true, // <-- THIS WAS THE BUG
+    //    created_at: new Date().toISOString(), 
+    // }
 
     setMovies((prevMovies) =>
       prevMovies.map((movie) => {
         if (movie.id === movieId) {
           const existingComments = movie.comments || [];
+          // Add the real comment from the API response
           return { ...movie, comments: [newComment, ...existingComments] };
         }
         return movie;
@@ -294,4 +297,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
