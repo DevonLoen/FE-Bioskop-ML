@@ -217,8 +217,10 @@ const MainPage = () => {
 
     // 2. Fetch comments for this movie
     try {
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
+
         // ADDED trailing slash
-        const response = await fetch(`http://localhost:8000/api/films/${movie.id}/comments/`, {
+        const response = await fetch(`${API_URL}/api/films/${movie.id}/comments/`, {
             headers: {
                 "Authorization": `Bearer ${token}`
             }

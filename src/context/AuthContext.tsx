@@ -53,6 +53,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoadingUser, setIsLoadingUser] = useState<boolean>(true); 
   const navigate = useNavigate();
 
+  const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+
   // ... (useEffect to load user remains the same) ...
   useEffect(() => {
     const loadUser = async () => {
@@ -81,7 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         if (token) {
              try {
                 // ADDED trailing slash
-                const response = await fetch("http://localhost:8000/api/films/", {
+                const response = await fetch(`${API_URL}/api/films/`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -132,10 +135,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+
   // ... (login, register, logout, addMovie functions remain the same) ...
   const login = async (email: string, password: string) => {
     // login endpoint already had trailing slash
-    const response = await fetch("http://localhost:8000/api/token/", {
+    const response = await fetch(`${API_URL}/api/token/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -167,7 +171,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const register = async (fullname: string, email: string, password: string) => {
     // ADDED trailing slash
-    const response = await fetch("http://localhost:8000/api/users/register/", {
+    const response = await fetch(`${API_URL}/api/users/register/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fullname, email, password }),
@@ -192,7 +196,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     // ADDED trailing slash
-    const response = await fetch("http://localhost:8000/api/films/", {
+    const response = await fetch(`${API_URL}/api/films/`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -222,7 +226,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     // 1. Make the POST request to the API
     // ADDED trailing slash
-    const response = await fetch("http://localhost:8000/api/comments/", {
+    const response = await fetch(`${API_URL}/api/comments/`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
