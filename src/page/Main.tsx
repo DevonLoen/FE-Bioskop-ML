@@ -4,6 +4,9 @@ import { useAuth } from "../context/AuthContext";
 import type { MovieType, CommentType, UserType } from "../types"; 
 import { timeAgo } from "../utils"; 
 
+// REVERTED: Hard-code the base URL
+const API_BASE_URL = "https://bioskop-ml-mikro.duckdns.org/api";
+
 // --- REUSABLE COMPONENTS ---
 
 // ... (MovieCard component remains the same) ...
@@ -44,7 +47,7 @@ const Comment = ({ comment }: { comment: CommentType }) => (
         comment.is_good ? "bg-green-500" : "bg-red-500"
       }`}
     >
-      {comment.is_good ? ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.085a2 2 0 00-1.736.93L5.5 8m7 2v5m0 0v5m0-5h-5" /></svg> ) : ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.738 3h4.017c.163 0 .326-.02.485-.06L17 4m-7 10v5a2 2 0 002 2h.085a2 2 0 001.736-.93l2.5-4m-7-5V9m0 0V4m0 5h5" /></svg> )}
+      {comment.is_good ? ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.085a2 2 0 00-1.736.93L5.5 8m7 2v5m0 0v5m0-5h-5" /></svg> ) : ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.738 3h4.017c.163 0 .326-.02-.485-.06L17 4m-7 10v5a2 2 0 002 2h.085a2 2 0 001.736-.93l2.5-4m-7-5V9m0 0V4m0 5h5" /></svg> )}
     </div>
     <div className="flex-grow">
       <div className="flex items-center justify-between">
@@ -98,8 +101,10 @@ const MovieDetail = ({
   const releaseDate = movie.release_date || "N/A";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 p-4 animate-fade-in"> 
-      <div className="bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"> 
+    // FIX 1: Make backdrop scrollable and align modal to top
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-start z-50 p-4 overflow-y-auto animate-fade-in"> 
+      {/* FIX 2: Remove max-height from modal container */}
+      <div className="bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col"> 
         <div className="relative flex-shrink-0 flex flex-col md:flex-row">
           {/* Close button */}
           <button
@@ -123,13 +128,13 @@ const MovieDetail = ({
           />
 
           {/* Movie Info */}
-          <div className="p-8 flex flex-col overflow-hidden">
+          <div className="p-8 flex flex-col min-w-0"> 
             <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-2 break-words">{movie.title}</h2>
+            <p className="text-gray-400 mb-4">{releaseDate}</p> 
 
             <div className="flex items-center mb-6">
               <div className="flex items-center text-yellow-400">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                {/* The rating is now dynamic */}
                 <span className="text-2xl font-bold text-white">{rating.toFixed(1)}</span>
                 <span className="text-gray-400 ml-1">/ 10</span>
               </div>
@@ -141,7 +146,8 @@ const MovieDetail = ({
         </div>
 
         {/* Comments Section */}
-        <div className="flex-grow p-8 pt-0 flex flex-col overflow-hidden">
+        {/* FIX 3: Remove flex-grow and overflow-hidden */}
+        <div className="p-8 pt-0 flex flex-col">
              <div className="border-t border-gray-700 pt-6 mb-4 flex-shrink-0">
                  <h3 className="text-xl font-bold text-cyan-400 flex items-center">
                     Comments
@@ -151,7 +157,8 @@ const MovieDetail = ({
                  </h3>
              </div>
              {/* Scrollable Comment List */}
-             <div className="flex-grow overflow-y-auto mb-4 bg-gray-800/50 rounded-lg">
+             {/* FIX 4: Remove flex-grow and add a max-height */}
+             <div className="max-h-[40vh] overflow-y-auto mb-4 bg-gray-800/50 rounded-lg">
                 {comments.length > 0 ? (
                     comments
                         .slice() 
@@ -159,7 +166,6 @@ const MovieDetail = ({
                         .map((c) => <Comment key={c.id} comment={c} />)
                 ) : (
                     <p className="text-gray-400 p-4">
-                        {/* Show loading text if comments are missing, or no comments */}
                         {movie.comments ? "No comments yet. Be the first!" : "Loading comments..."}
                     </p>
                 )}
@@ -175,7 +181,7 @@ const MovieDetail = ({
                     rows={3}
                 ></textarea>
                 <div className="flex justify-between items-center mt-3">
-                    <div className="flex-grow"></div> {/* Empty div to push button right */}
+                    <div className="flex-grow"></div> 
                     <button type="submit" disabled={isSubmitting} className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-6 rounded-lg transition disabled:opacity-50">
                         {isSubmitting ? "Posting..." : "Comment"}
                     </button>
@@ -195,12 +201,8 @@ const MainPage = () => {
   const { currentUser, movies, addComment, logout, token } = useAuth(); 
   const [selectedMovie, setSelectedMovie] = useState<MovieType | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  // REMOVED: activelyUpdatingMovieId state
 
   const navigate = useNavigate();
-
-  // REMOVED: The buggy useEffect that synced movies and selectedMovie
-  // The logic is now handled by handleAddCommentAndUpdateModal
 
   // --- UPDATED handleSelectMovie Function ---
   const handleSelectMovie = async (movie: MovieType) => {
@@ -209,18 +211,13 @@ const MainPage = () => {
         return;
     }
 
-    // 1. Find movie from list and set it (opens modal immediately)
     const movieFromList = movies.find((m) => m.id === movie.id) || movie;
-    // We set comments to undefined here to trigger the "Loading comments..." text
-    // And rating to 0 to start
     setSelectedMovie({...movieFromList, comments: undefined, rating: 0.0});
 
     // 2. Fetch comments for this movie
     try {
-  const API_URL = import.meta.env.VITE_API_BASE_URL;
-
-        // ADDED trailing slash
-        const response = await fetch(`${API_URL}/api/films/${movie.id}/comments/`, {
+        // UPDATED: Use hard-coded URL
+        const response = await fetch(`${API_BASE_URL}/films/${movie.id}/comments/`, {
             headers: {
                 "Authorization": `Bearer ${token}`
             }
@@ -242,22 +239,19 @@ const MainPage = () => {
 
         // 3. Update the selectedMovie state again with comments AND rating
         setSelectedMovie(prevMovie => {
-            // Safety check: only update if the modal is still open for this movie
             if (!prevMovie || prevMovie.id !== movie.id) return prevMovie; 
             
             return {
                 ...prevMovie,
                 comments: fetchedComments,
-                rating: calculatedRating // Set the calculated rating
+                rating: calculatedRating 
             };
         });
 
     } catch (error) {
         console.error("Error fetching comments:", error);
-        // Optionally show an error in the modal
         setSelectedMovie(prevMovie => {
              if (!prevMovie || prevMovie.id !== movie.id) return prevMovie; 
-             // Set empty comments and 0 rating on error
              return { ...prevMovie, comments: [], rating: 0.0 }; 
         });
     }
@@ -275,13 +269,10 @@ const MainPage = () => {
     commentText: string
   ) => {
      try {
-        // 1. Call context, which POSTs and updates master 'movies' list
         const newComment = await addComment(movieId, commentText);
         
-        // 2. Manually update the local 'selectedMovie' state
-        // This instantly re-renders the modal
         setSelectedMovie(prevMovie => {
-            if (!prevMovie) return null; // Safety check
+            if (!prevMovie) return null; 
             const existingComments = prevMovie.comments || [];
             const newCommentsList = [newComment, ...existingComments];
 
@@ -296,13 +287,12 @@ const MainPage = () => {
             return {
                 ...prevMovie,
                 comments: newCommentsList,
-                rating: newCalculatedRating // Set new rating
+                rating: newCalculatedRating 
             };
         });
 
      } catch (error) {
          console.error("Error adding comment in MainPage:", error);
-         // TODO: Show error in modal
      }
   };
   // --- END UPDATED Wrapper ---
@@ -417,4 +407,3 @@ const MainPage = () => {
 };
 
 export default MainPage;
-

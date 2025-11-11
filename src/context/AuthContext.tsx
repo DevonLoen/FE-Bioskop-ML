@@ -5,6 +5,9 @@ import type { UserType, MovieType, CommentType, DecodedTokenType } from "../type
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 
+// REVERTED: Hard-code the base URL
+const API_BASE_URL = "https://bioskop-ml-mikro.duckdns.org/api";
+
 // ... (decodeTokenToUser function remains the same) ...
 const decodeTokenToUser = (token: string): UserType | null => {
   try {
@@ -53,9 +56,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoadingUser, setIsLoadingUser] = useState<boolean>(true); 
   const navigate = useNavigate();
 
-  const API_URL = import.meta.env.VITE_API_BASE_URL;
-
-
   // ... (useEffect to load user remains the same) ...
   useEffect(() => {
     const loadUser = async () => {
@@ -83,8 +83,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     const fetchMovies = async () => {
         if (token) {
              try {
-                // ADDED trailing slash
-                const response = await fetch(`${API_URL}/api/films/`, {
+                // UPDATED: Use hard-coded URL
+                const response = await fetch(`${API_BASE_URL}/films/`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -135,11 +135,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-
   // ... (login, register, logout, addMovie functions remain the same) ...
   const login = async (email: string, password: string) => {
-    // login endpoint already had trailing slash
-    const response = await fetch(`${API_URL}/api/token/`, {
+    // UPDATED: Use hard-coded URL
+    const response = await fetch(`${API_BASE_URL}/token/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -170,8 +169,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const register = async (fullname: string, email: string, password: string) => {
-    // ADDED trailing slash
-    const response = await fetch(`${API_URL}/api/users/register/`, {
+    // UPDATED: Use hard-coded URL
+    const response = await fetch(`${API_BASE_URL}/users/register/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fullname, email, password }),
@@ -195,8 +194,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         throw new Error("No authorization token found. Please log in.");
     }
 
-    // ADDED trailing slash
-    const response = await fetch(`${API_URL}/api/films/`, {
+    // UPDATED: Use hard-coded URL
+    const response = await fetch(`${API_BASE_URL}/films/`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -225,8 +224,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     // 1. Make the POST request to the API
-    // ADDED trailing slash
-    const response = await fetch(`${API_URL}/api/comments/`, {
+    // UPDATED: Use hard-coded URL
+    const response = await fetch(`${API_BASE_URL}/comments/`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -247,17 +246,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     // GET THE ACTUAL COMMENT FROM THE RESPONSE
     const newComment: CommentType = await response.json();
     
-    // REMOVED: The hard-coded simulation
-    // console.log("Comment POST successful. Simulating local state update.");
-    // const newComment: CommentType = {
-    //    id: Date.now(), 
-    //    film: movieId, 
-    //    user: currentUser.email, 
-    //    comment: commentText,
-    //    is_good: true, // <-- THIS WAS THE BUG
-    //    created_at: new Date().toISOString(), 
-    // }
-
     setMovies((prevMovies) =>
       prevMovies.map((movie) => {
         if (movie.id === movieId) {
