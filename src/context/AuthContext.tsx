@@ -1,32 +1,20 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from "react";
-// Import DecodedTokenType along with other types
-import type { UserType, MovieType, CommentType, DecodedTokenType } from "../types";
-// import { initialMoviesData } from "../data"; // No longer needed
+import type { UserType, MovieType, DecodedTokenType } from "../types";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 
-// REVERTED: Hard-code the base URL
-const API_BASE_URL = "https://bioskop-ml-mikro.duckdns.org/api";
+const BASE_URL = "https://bioskop-ml-mikro.duckdns.org";
 
-// ... (decodeTokenToUser function remains the same) ...
 const decodeTokenToUser = (token: string): UserType | null => {
   try {
     const decoded = jwtDecode<DecodedTokenType>(token);
     if (decoded.exp * 1000 < Date.now()) {
-      console.log("Token expired");
       localStorage.removeItem("token");
       return null;
     }
-    // Create UserType object directly from token payload
-    const user: UserType = {
-        id: parseInt(decoded.user_id, 10), // Convert string ID to number
-        fullname: decoded.fullname,
-        email: decoded.email, // Assumes email is in the token
-        is_admin: decoded.is_admin,
-    };
-    return user;
+    return { email: decoded.sub };
   } catch (e) {
-    console.error("Failed to decode token:", e);
     localStorage.removeItem("token");
     return null;
   }
@@ -35,151 +23,67 @@ const decodeTokenToUser = (token: string): UserType | null => {
 interface AuthContextType {
   currentUser: UserType | null;
   token: string | null;
-  movies: MovieType[];
+  recommendations: MovieType[];
   login: (email: string, password: string) => Promise<void>;
-  register: (fullname: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  addMovie: (title: string, cover_img_url: string) => Promise<void>;
-  // UPDATED: addComment now returns the new comment
-  addComment: (movieId: number, commentText: string) => Promise<CommentType>;
-  isLoadingUser?: boolean; 
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
-  const [movies, setMovies] = useState<MovieType[]>([]); // Initialize as empty array
-  const [isLoadingUser, setIsLoadingUser] = useState<boolean>(true); 
+  const [recommendations, setRecommendations] = useState<MovieType[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
-  // ... (useEffect to load user remains the same) ...
   useEffect(() => {
-    const loadUser = async () => {
-        const storedToken = localStorage.getItem("token");
-        if (storedToken) {
-            const userProfile = decodeTokenToUser(storedToken); 
-            if (userProfile) {
-                setCurrentUser(userProfile);
-                setToken(storedToken);
-            } else {
-                 setCurrentUser(null);
-                 setToken(null);
-            }
-        } else {
-            setCurrentUser(null);
-            setToken(null);
-        }
-        setIsLoadingUser(false); 
-    };
-    loadUser();
-  }, []); 
-
-  // ... (useEffect to fetch movies remains the same) ...
-  useEffect(() => {
-    const fetchMovies = async () => {
-        if (token) {
-             try {
-                // UPDATED: Use hard-coded URL
-                const response = await fetch(`${API_BASE_URL}/films/`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}` // Assuming auth is needed
-                    }
-                });
-                if (!response.ok) {
-                    throw new Error("Failed to fetch movies");
-                }
-                const data: MovieType[] = await response.json();
-                
-                const moviesWithDefaults = data.map(movie => ({
-                    ...movie,
-                    comments: movie.comments || [] 
-                }));
-                setMovies(moviesWithDefaults);
-
-             } catch (error) {
-                console.error("Error fetching movies:", error);
-             }
-        }
-    };
-    
-    if (!isLoadingUser) {
-         fetchMovies();
-    }
-  }, [token, isLoadingUser]); 
-
-  // ... (useEffect for storage change remains the same) ...
-  useEffect(() => {
-    const handleStorageChange = async () => {
-      setIsLoadingUser(true); 
-      const newToken = localStorage.getItem("token");
-      setToken(newToken);
-      if (newToken) {
-          const userProfile = decodeTokenToUser(newToken); 
-          if (userProfile) {
-              setCurrentUser(userProfile);
-          } else {
-               setCurrentUser(null);
-          }
-      } else {
-           setCurrentUser(null);
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      const user = decodeTokenToUser(storedToken);
+      if (user) {
+        setCurrentUser(user);
+        setToken(storedToken);
       }
-       setIsLoadingUser(false);
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    }
+    setIsLoading(false);
   }, []);
 
-  // ... (login, register, logout, addMovie functions remain the same) ...
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!token) return;
+      try {
+        const response = await fetch(`${BASE_URL}/api/v1/recommendation`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setRecommendations(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch recommendations:", error);
+      }
+    };
+    if (!isLoading && token) fetchRecommendations();
+  }, [token, isLoading]);
+
   const login = async (email: string, password: string) => {
-    // UPDATED: Use hard-coded URL
-    const response = await fetch(`${API_BASE_URL}/token/`, {
+    const response = await fetch(`${BASE_URL}/api/v1/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: "Login failed" }));
-      throw new Error(errorData.detail || "Login failed");
-    }
+    if (!response.ok) throw new Error("Login failed");
 
     const data = await response.json();
-    const accessToken = data.access; 
-
-    if (!accessToken) {
-        throw new Error("Login failed: No access token received.");
-    }
-
-    const userProfile = decodeTokenToUser(accessToken); 
-
-    if (!userProfile) {
-         throw new Error("Login failed: Could not decode user from token or token expired.");
-    }
+    const accessToken = data.access_token; // Fixed to match your API response
 
     localStorage.setItem("token", accessToken);
     setToken(accessToken);
-    setCurrentUser(userProfile);
-    navigate("/"); 
-  };
-
-  const register = async (fullname: string, email: string, password: string) => {
-    // UPDATED: Use hard-coded URL
-    const response = await fetch(`${API_BASE_URL}/users/register/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullname, email, password }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: "Registration failed" }));
-      throw new Error(errorData.detail || "Registration failed");
-    }
+    setCurrentUser(decodeTokenToUser(accessToken));
+    navigate("/");
   };
 
   const logout = () => {
@@ -189,103 +93,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     navigate("/login");
   };
 
-  const addMovie = async (title: string, cover_img_url: string) => {
-    if (!token) {
-        throw new Error("No authorization token found. Please log in.");
-    }
-
-    // UPDATED: Use hard-coded URL
-    const response = await fetch(`${API_BASE_URL}/films/`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
-        },
-        body: JSON.stringify({ title, cover_img_url })
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: "Failed to add movie" }));
-        throw new Error(errorData.detail || "Failed to add movie");
-    }
-    
-    const newMovie: MovieType = await response.json();
-    
-    const newMovieWithDefaults = { ...newMovie, comments: newMovie.comments || [] };
-
-    setMovies((prevMovies) => [newMovieWithDefaults, ...prevMovies]);
-    navigate('/'); 
-  };
-
-  // --- UPDATED addComment Function ---
-  const addComment = async (movieId: number, commentText: string): Promise<CommentType> => {
-    if (!currentUser || !token) {
-        throw new Error("User not logged in or token missing");
-    }
-
-    // 1. Make the POST request to the API
-    // UPDATED: Use hard-coded URL
-    const response = await fetch(`${API_BASE_URL}/comments/`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            film: movieId,
-            comment: commentText
-        })
-    });
-
-    if (!response.ok) {
-         const errorData = await response.json().catch(() => ({ detail: "Failed to add comment" }));
-         throw new Error(errorData.detail || "Failed to add comment");
-    }
-
-    // 2. API call was successful.
-    // GET THE ACTUAL COMMENT FROM THE RESPONSE
-    const newComment: CommentType = await response.json();
-    
-    setMovies((prevMovies) =>
-      prevMovies.map((movie) => {
-        if (movie.id === movieId) {
-          const existingComments = movie.comments || [];
-          // Add the real comment from the API response
-          return { ...movie, comments: [newComment, ...existingComments] };
-        }
-        return movie;
-      })
-    );
-    
-    // 3. Return the new comment so the UI can use it
-    return newComment;
-  };
-  // --- END UPDATED addComment Function ---
-
-
-  const value = {
-    currentUser,
-    token,
-    movies,
-    login,
-    register,
-    logout,
-    addMovie,
-    addComment,
-    isLoadingUser 
-  };
-
-   if (isLoadingUser) {
-        return <div className="bg-gray-900 min-h-screen flex items-center justify-center text-white">Loading...</div>;
-   }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ currentUser, token, recommendations, login, logout, isLoading }}>
+      {!isLoading && children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
